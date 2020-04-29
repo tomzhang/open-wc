@@ -9,6 +9,8 @@ const { mdjsStoryParse } = require('../src/mdjsStoryParse.js');
 
 const { expect } = chai;
 
+/** @typedef {import("../src/mdjsParse.js").MDJSVFileData} MDJSVFileData */
+
 describe('mdjsStoryParse', () => {
   const input = [
     '## Intro',
@@ -36,8 +38,7 @@ describe('mdjsStoryParse', () => {
     const parser = unified().use(markdown).use(mdjsStoryParse).use(html);
     const result = await parser.process(input);
     expect(result.contents).to.equal(expected);
-    // @ts-ignore
-    expect(result.data.stories).to.deep.equal([
+    expect(/** @type {MDJSVFileData} */ (result.data).stories).to.deep.equal([
       {
         key: 'fooStory',
         name: 'fooStory',
