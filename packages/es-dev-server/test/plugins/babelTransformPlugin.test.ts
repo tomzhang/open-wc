@@ -23,12 +23,14 @@ async function fetchText(url, userAgent) {
     headers: { 'user-agent': userAgent },
   });
 
-  if (response.status !== 200) {
-    console.log(response);
-    throw new Error('Server did not respond with 200');
-  }
-
+  expect(response.status).to.equal(200);
   return response.text();
+}
+
+function expectIncludes(text: string, expected: string) {
+  if (!text.includes(expected)) {
+    throw new Error(`Expected "${expected}" in string: \n\n${text}`);
+  }
 }
 
 interface Features {
@@ -52,34 +54,39 @@ async function expectCompatibilityTransform(userAgent, features: Features = {}) 
     userAgent,
   );
 
-  expect(stage4Features).to.include(
+  expectIncludes(
+    stage4Features,
     features.objectSpread ? '_objectSpread({}, foo);' : 'bar = { ...foo',
   );
-  expect(stage4Features).to.include(
+  expectIncludes(
+    stage4Features,
     features.asyncFunction ? '_asyncFunction = _asyncToGenerator(' : 'async function',
   );
-  expect(stage4Features).to.include(features.exponentiation ? 'Math.pow(2, 4)' : '2 ** 4');
-  expect(stage4Features).to.include(features.classes ? 'Foo = function Foo() {' : 'class Foo {');
-  expect(stage4Features).to.include(
-    /* eslint-disable-next-line no-template-curly-in-string */
+  expectIncludes(stage4Features, features.exponentiation ? 'Math.pow(2, 4)' : '2 ** 4');
+  expectIncludes(stage4Features, features.classes ? 'Foo = function Foo() {' : 'class Foo {');
+
+  expectIncludes(
+    stage4Features,
     features.templateLiteral ? '"template ".concat(\'literal\')' : "template ${'literal'}",
   );
-
-  expect(esModules).to.include(
+  expectIncludes(
+    esModules,
     features.esModules
       ? 'System.register(["lit-html", "./module-features-a.js"]'
       : "import module from './module-features-a.js';",
   );
-  expect(esModules).to.include("import('./module-features-b.js')");
-  expect(esModules).to.include(features.esModules ? 'meta.url.indexOf' : 'import.meta.url.indexOf');
+  expectIncludes(esModules, "import('./module-features-b.js')");
+  expectIncludes(esModules, features.esModules ? 'meta.url.indexOf' : 'import.meta.url.indexOf');
 
-  expect(stage4Features).to.include(
+  expectIncludes(
+    stage4Features,
     features.optionalChaining
       ? "lorem == null ? void 0 : lorem.ipsum) === 'lorem ipsum' && (lorem == null ? void 0 : (_lorem$ipsum = lorem.ipsum) == null ? void 0 : _lorem$ipsum.foo) === undefined;"
       : 'lorem?.ipsum?.foo',
   );
 
-  expect(stage4Features).to.include(
+  expectIncludes(
+    stage4Features,
     features.nullishCoalescing
       ? "(buz != null ? buz : 'nullish colaesced') === 'nullish colaesced'"
       : "buz ?? 'nullish colaesced'",
@@ -90,11 +97,11 @@ async function expectSupportStage3(userAgent) {
   const classFields = await fetchText('stage-3-class-fields.js', userAgent);
   const privateFields = await fetchText('stage-3-private-class-fields.js', userAgent);
 
-  expect(classFields).to.include("myField = 'foo';");
-  expect(privateFields).to.include("#foo = 'bar';");
+  expectIncludes(classFields, "myField = 'foo';");
+  expectIncludes(privateFields, "#foo = 'bar';");
 }
 
-describe('compatibility transform middleware', () => {
+describe('babelTransformPlugin', () => {
   describe('compatibilityMode NONE', () => {
     let server;
     beforeEach(async () => {
@@ -394,9 +401,9 @@ describe('compatibility transform middleware', () => {
         const responseText = await response.text();
 
         expect(response.status).to.equal(200);
-        expect(responseText).to.include('function _classCallCheck(instance, Constructor) {');
-        expect(responseText).to.include('Foo = function Foo() {');
-        expect(responseText).to.include("bar = 'buz';");
+        expectIncludes(responseText, 'function _classCallCheck(instance, Constructor) {');
+        expectIncludes(responseText, 'Foo = function Foo() {');
+        expectIncludes(responseText, "bar = 'buz';");
       } finally {
         server.close();
       }
@@ -421,8 +428,8 @@ describe('compatibility transform middleware', () => {
 
         expect(responseHtml.status).to.equal(200);
         expect(responseFoo.status).to.equal(200);
-        expect(responseTextHtml).to.include("foo = 'bar';");
-        expect(responseTextFoo).to.include("bar = 'foo';");
+        expectIncludes(responseTextHtml, "foo = 'bar';");
+        expectIncludes(responseTextFoo, "bar = 'foo';");
       } finally {
         server.close();
       }
@@ -463,10 +470,11 @@ describe('compatibility transform middleware', () => {
       const responseText = await response.text();
 
       expect(response.status).to.equal(200);
-      expect(responseText).to.include(
+      expectIncludes(
+        responseText,
         'function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }',
       );
-      expect(responseText).to.include('Foo = function Foo() {');
+      expectIncludes(responseText, 'Foo = function Foo() {');
     });
   });
 
@@ -486,10 +494,8 @@ describe('compatibility transform middleware', () => {
         const responseText = await response.text();
 
         expect(response.status).to.equal(200);
-        expect(responseText).to.include(
-          "import { message } from './node_modules/my-module/index.js';",
-        );
-        expect(responseText).to.include('async function* asyncGenerator()');
+        expectIncludes(responseText, "import { message } from '/node_modules/my-module/index.js';");
+        expectIncludes(responseText, 'async function* asyncGenerator()');
       } finally {
         server.close();
       }
@@ -509,8 +515,9 @@ describe('compatibility transform middleware', () => {
         const response = await fetch(`${host}app.js?transform-systemjs`);
         const responseText = await response.text();
         expect(response.status).to.equal(200);
-        expect(responseText).to.include(
-          'System.register(["./node_modules/my-module/index.js", "./src/local-module.js"], function',
+        expectIncludes(
+          responseText,
+          'System.register(["/node_modules/my-module/index.js", "./src/local-module.js"], function',
         );
       } finally {
         server.close();
@@ -543,7 +550,7 @@ describe('compatibility transform middleware', () => {
       const responseText = await response.text();
 
       expect(response.status).to.equal(200);
-      expect(responseText).to.include("const bar = 'buz';");
+      expectIncludes(responseText, "const bar = 'buz';");
     });
   });
 
@@ -554,20 +561,15 @@ describe('compatibility transform middleware', () => {
         createConfig({
           port: 8080,
           compatibility: compatibilityModes.MAX,
+          polyfillsLoader: false,
           rootDir: path.resolve(__dirname, '..', 'fixtures', 'inline-script'),
         }),
       ));
 
-      const indexResponse = await fetch(`${host}index.html`, {
-        headers: { accept: 'text/html' },
-      });
-      expect(indexResponse.status).to.equal(200);
-      const inlineModuleResponse = await fetch(
-        `${host}${virtualFilePrefix}inline-script-1.js?source=/index.html`,
-      );
-      expect(inlineModuleResponse.status).to.equal(200);
-      const inlineModuleText = await inlineModuleResponse.text();
-      expect(inlineModuleText).to.include('function asyncGenerator() {');
+      const responseText = await fetchText('index.html', userAgents['Chrome 78']);
+      expectIncludes(responseText, 'function _classCallCheck(instance, Constructor)');
+      expectIncludes(responseText, 'function _AwaitValue(value) { this.wrapped = value; }');
+      expectIncludes(responseText, 'function _asyncGenerator() {');
     } finally {
       server.close();
     }
@@ -589,10 +591,8 @@ describe('compatibility transform middleware', () => {
         const responseText = await response.text();
 
         expect(response.status).to.equal(200);
-        expect(responseText).to.include(
-          "import { message } from './node_modules/my-module/index.js';",
-        );
-        expect(responseText).to.include('async function* asyncGenerator()');
+        expectIncludes(responseText, "import { message } from '/node_modules/my-module/index.js';");
+        expectIncludes(responseText, 'async function* asyncGenerator()');
       } finally {
         server.close();
       }
@@ -613,7 +613,7 @@ describe('compatibility transform middleware', () => {
         const responseText = await response.text();
         expect(response.status).to.equal(200);
         expect(responseText).to.include(
-          'System.register(["./node_modules/my-module/index.js", "./src/local-module.js"], function',
+          'System.register(["/node_modules/my-module/index.js", "./src/local-module.js"], function',
         );
       } finally {
         server.close();
@@ -646,9 +646,7 @@ describe('compatibility transform middleware', () => {
       expect(response.status).to.equal(200);
 
       expect(responseText).to.include('function _classCallCheck(instance, Constructor)');
-      expect(responseText).to.include(
-        "import { message } from './node_modules/my-module/index.js'",
-      );
+      expect(responseText).to.include("import { message } from '/node_modules/my-module/index.js'");
     });
   });
 
@@ -679,7 +677,7 @@ describe('compatibility transform middleware', () => {
       expect(response.status).to.equal(200);
 
       expect(responseText).to.include(
-        'System.register(["./node_modules/my-module/index.ts", "./src/local-module.ts"]',
+        'System.register(["/node_modules/my-module/index.ts", "/src/local-module.ts"]',
       );
       expect(responseText).to.include("bar = 'buz';");
     });
@@ -693,7 +691,6 @@ describe('compatibility transform middleware', () => {
           port: 8080,
           compatibility: compatibilityModes.MAX,
           rootDir: path.resolve(__dirname, '..', 'fixtures', 'simple'),
-          fileExtensions: ['.html'],
         }),
       ));
     });
@@ -711,19 +708,6 @@ describe('compatibility transform middleware', () => {
       expect(response.status).to.equal(200);
       expect(response.headers.get('content-type')).to.equal('text/html; charset=utf-8');
       expect(responseText.startsWith('<html>')).to.be.true;
-    });
-
-    it('does not transform JS files requested with content-type text/html', async () => {
-      const response = await fetch(`${host}app.js`, {
-        headers: { accept: 'text/html' },
-      });
-      const responseText = await response.text();
-
-      expect(response.status).to.equal(200);
-      expect(response.headers.get('content-type')).to.equal(
-        'application/javascript; charset=utf-8',
-      );
-      expect(responseText.startsWith("import { message } from 'my-module';")).to.be.true;
     });
   });
 });
