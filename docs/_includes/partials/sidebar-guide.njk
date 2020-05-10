@@ -8,27 +8,11 @@
         <span>Guides &amp; Docs</span>
         <span class="arrow right"></span></p>
       <ul class="sidebar-links sidebar-group-items" style="">
-        <li>
-          <a href="/developing/best-practices.html" class="{% if permalink == 'developing/best-practices.html' %}active {% endif %}sidebar-link">Best Practices</a>
-        </li>
-        <li>
-          <a href="/codelabs/" class="{% if permalink == 'codelabs/index.html' %}active {% endif %}sidebar-link">Codelabs</a>
-        </li>
-        <li>
-          <a href="/developing/code-examples.html" class="{% if permalink == 'developing/code-examples.html' %}active {% endif %}sidebar-link">Code examples</a>
-        </li>
-        <li>
-          <a href="/developing/lit-html.html" class="{% if permalink == 'developing/lit-html.html' %}active {% endif %}sidebar-link">lit-html</a>
-        </li>
-        <li>
-          <a href="/developing/types.html" class="{% if permalink == 'developing/types.html' %}active {% endif %}sidebar-link">Types</a>
-        </li>
-        <li>
-          <a href="/developing/ide.html" class="{% if permalink == 'developing/ide.html' %}active {% endif %}sidebar-link">IDE</a>
-        </li>
-        <li>
-          <a href="/guide/component-libraries.html" class="{% if permalink == 'guide/component-libraries.html' %}active {% endif %}sidebar-link">Web Component Libraries</a>
-        </li>
+        {% for item in collections.guide %}
+          <li>
+            <a href="{{ item.url }}" class="{% if page.url == item.url %}active {% endif %}sidebar-link">{{ item.data.title }}</a>
+          </li>
+        {% endfor %}
       </ul>
     </section>
   </li>
