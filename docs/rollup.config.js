@@ -41,7 +41,7 @@ module.exports = async () => {
         { src: '_site-dev/styles.css', dest },
         { src: '_site-dev/demoing/demo/custom-elements.json', dest },
         { src: '_site-dev/manifest.json', dest },
-        { src: '_site-dev/**/*.{png,gif}', dest },
+        { src: '_site-dev/**/*.{png,gif,jpg}', dest },
       ],
       flatten: false,
     }),

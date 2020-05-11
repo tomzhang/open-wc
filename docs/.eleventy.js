@@ -6,7 +6,7 @@ module.exports = function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy('styles.css');
   eleventyConfig.addPassthroughCopy('demoing/demo/custom-elements.json');
   eleventyConfig.addPassthroughCopy('manifest.json');
-  eleventyConfig.addPassthroughCopy('**/*.{png,gif}');
+  eleventyConfig.addPassthroughCopy('**/*.{png,gif,jpg}');
 
   eleventyConfig.addCollection('section', function (collection) {
     // This works _because_ of our current content. Something like https://github.com/Polymer/lit-html/blob/master/docs/.eleventy.js#L37
